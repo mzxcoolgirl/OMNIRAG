@@ -17,7 +17,8 @@ from rag.hybrid_retriever import HybridRetriever
 
 st.title("OmniRAG")
 
-st.sidebar.title("Chat History")
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
 
 for role, message in st.session_state.chat_history:
     if role == "User":
