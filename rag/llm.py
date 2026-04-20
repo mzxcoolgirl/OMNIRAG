@@ -3,10 +3,18 @@ import streamlit as st
 
 def generate_answer(context, query, history=""):
 
+    # 🧠 Improved Prompt (better answers)
     prompt = f"""
-You are an expert assistant.
+You are a helpful assistant.
 
-Answer ONLY using the context below.
+Answer the question using the context below.
+
+Rules:
+- Try your best to answer using the context
+- If answer is partially available, explain using available info
+- Do NOT say "Not found" unless absolutely nothing is relevant
+
+
 
 Context:
 {context}
@@ -15,34 +23,48 @@ Question:
 {query}
 """
 
-    try:
-        response = requests.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {st.secrets['API_KEY']}",
-                "Content-Type": "application/json"
-            },
-            json={
-                "model": "llama3-8b-8192",
-                "messages": [{"role": "user", "content": prompt}]
-            },
-            timeout=30
-        )
+    # 🔥 Fallback Models (auto-switch if one fails)
+    models = [
+        "llama-3.1-8b-instant",
+        "llama-3.1-70b-versatile",
+        "gemma2-9b-it"
+    ]
 
-        # 🔍 DEBUG (visible in Streamlit)
-        st.write("API Response:", response.json())
+    for model in models:
+        try:
+            response = requests.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {st.secrets['API_KEY']}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "model": model,
+                    "messages": [
+                        {"role": "system", "content": "You are a helpful assistant."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    "temperature": 0.3  # more accurate answers
+                },
+                timeout=30
+            )
 
-        # ❌ HTTP error check
-        if response.status_code != 200:
-            return f"❌ HTTP Error {response.status_code}: {response.text}"
+            # ❌ If HTTP error → try next model
+            if response.status_code != 200:
+                continue
 
-        data = response.json()
+            data = response.json()
 
-        # ❌ API structure error
-        if "choices" not in data:
-            return f"⚠️ API Error: {data}"
+            # ❌ If invalid response → try next model
+            if "choices" not in data:
+                continue
 
-        return data["choices"][0]["message"]["content"]
+            # ✅ SUCCESS
+            return data["choices"][0]["message"]["content"]
 
-    except Exception as e:
-        return f"🚨 Exception: {str(e)}"
+        except Exception:
+            # ❌ If request fails → try next model
+            continue
+
+    # ❌ If all models fail
+    return "⚠️ All models failed. Please try again later."
