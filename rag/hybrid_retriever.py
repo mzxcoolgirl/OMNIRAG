@@ -13,22 +13,23 @@ class HybridRetriever:
         tokenized_chunks = [chunk.split(" ") for chunk in chunks]
         self.bm25 = BM25Okapi(tokenized_chunks)
 
-    def search(self, query_embedding, query, k=8):
+    def search(self, query_embedding, query, k=10):
 
-        # Vector search
-        distances, indices = self.index.search(np.array(query_embedding), k)
+        # ✅ FIX SHAPE
+        query_embedding = np.array([query_embedding]).astype("float32")
+
+        distances, indices = self.index.search(query_embedding, k)
 
         vector_results = [self.chunks[i] for i in indices[0]]
 
-        # Keyword search
+        # keyword (BM25)
         tokenized_query = query.split(" ")
         bm25_scores = self.bm25.get_scores(tokenized_query)
 
         bm25_indices = np.argsort(bm25_scores)[::-1][:k]
-
         keyword_results = [self.chunks[i] for i in bm25_indices]
 
-        # Combine results
-        combined = list(set(vector_results + keyword_results))
+        # combine
+        combined = vector_results + keyword_results
 
-        return combined[:k]
+        return combined

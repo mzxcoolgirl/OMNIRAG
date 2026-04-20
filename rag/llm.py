@@ -1,24 +1,31 @@
 import ollama
 
-
-def generate_answer(context, query, history):
+def generate_answer(context, query, history=""):
 
     prompt = f"""
-    You are a helpful assistant answering questions from a document.
+You are an expert assistant.
 
-    Use the conversation history and the provided context.
+Your task is to give a DETAILED, LONG, and WELL-EXPLAINED answer based ONLY on the provided context.
 
-    Conversation History:
-    {history}
+Instructions:
+- Explain step by step
+- Give full understanding
+- Use simple language
+- Include important details
+- If possible, expand the explanation clearly
+- Do NOT give short answers
 
-    Context:
-    {context}
+Context:
+{context}
 
-    Question:
-    {query}
+Conversation History:
+{history}
 
-    Answer clearly using the document.
-    """
+Question:
+{query}
+
+Answer (in detailed paragraph form):
+"""
 
     response = ollama.chat(
         model="llama3",
